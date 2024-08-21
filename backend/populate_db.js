@@ -1,16 +1,28 @@
-const MongoClient = require('mongodb').MongoClient;
+// const MongoClient = require('mongodb').MongoClient;
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const fs = require('fs');
 const csv = require('csv-parser');
 const { v4: uuidv4 } = require('uuid');
 
+// dotenv
+require('dotenv').config();
+
+
 // MongoDB connection URL
-const url = 'mongodb://localhost:27017';
+const url = process.env.MONGODB_URI;
 const dbName = 'hsbc';
 const collectionName = 'transactions';
 
 // Function to insert data into MongoDB
 async function insertData(data, batchSize = 500) {
-    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    // const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    const client = new MongoClient(url, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        }
+      });
     try {
         await client.connect();
         const db = client.db(dbName);
@@ -79,7 +91,14 @@ async function readCSVAndInsert(filePath) {
 
 
 async function calculateAndInsertStatistics(collectionCurr, groupByField) {
-    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    // const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    const client = new MongoClient(url, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        }
+      });
     try {
         await client.connect();
         const db = client.db(dbName);
@@ -112,7 +131,14 @@ async function calculateAndInsertStatistics(collectionCurr, groupByField) {
 
 // Function to calculate and insert amount statistics with ranges
 async function calculateAndInsertAmountStatistics() {
-    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    // const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    const client = new MongoClient(url, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        }
+      });
     try {
         await client.connect();
         const db = client.db(dbName);
@@ -167,8 +193,9 @@ async function calculateAndInsertAmountStatistics() {
 async function main() {
     const filePath = 'HSBC.csv';
     try {
-        await readCSVAndInsert(filePath);
-        await calculateAndInsertAmountStatistics();
+        // await readCSVAndInsert(filePath);
+        // console.log(url);
+        // await calculateAndInsertAmountStatistics();
         await calculateAndInsertStatistics('categorystatistics', 'category');
         await calculateAndInsertStatistics('merchantstatistics', 'merchant');
         await calculateAndInsertStatistics('agestatistics', 'age');
