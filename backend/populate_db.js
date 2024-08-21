@@ -17,6 +17,8 @@ async function insertData(data) {
         const collection = db.collection(collectionName);
         await collection.insertMany(data);
         console.log('Data inserted successfully!');
+    } catch (error) {
+        console.error('Error inserting data:', error);
     } finally {
         await client.close();
     }
@@ -39,45 +41,35 @@ function parseData(row) {
 }
 
 // Function to read data from CSV and insert into MongoDB
-function readCSVAndInsert(filePath) {
+async function readCSVAndInsert(filePath) {
     const results = [];
-    fs.createReadStream(filePath)
-        .pipe(csv())
-        .on('data', (row) => results.push(parseData(row)))
-        .on('end', () => {
-            insertData(results);
-        });
+    return new Promise((resolve, reject) => {
+        fs.createReadStream(filePath)
+            .pipe(csv())
+            .on('data', (row) => results.push(parseData(row)))
+            .on('end', async () => {
+                try {
+                    await insertData(results);
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            })
+            .on('error', (error) => reject(error));
+    });
 }
 
-
-// {
-//   "_id": {
-//     "$oid": "66c57924eab139f8ffd660e2"
-//   },
-//   "step": 0,
-//   "customer": "C1093826151",
-//   "age": 4,
-//   "gender": "M",
-//   "zipcodeOri": "28007",
-//   "merchant": "M348934600",
-//   "zipMerchant": "28007",
-//   "category": "es_transportation",
-//   "amount": 4.55,
-//   "fraud": 0
-// }
-
-// statistic data
-const collectionName2 = 'categoryStatistics';
-async function calculateAndInsertCategoryStatistics() {
+// Function to calculate and insert statistics
+async function calculateAndInsertStatistics(collectionName, groupByField) {
     const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         await client.connect();
         const db = client.db(dbName);
-        const collection = db.collection(collectionName2);
+        const collection = db.collection(collectionName);
         const statistics = await db.collection(collectionName).aggregate([
             {
                 $group: {
-                    _id: "$category",
+                    _id: `$${groupByField}`,
                     totalAmount: { $sum: "$amount" },
                     totalTransactions: { $sum: 1 },
                     averageAmount: { $avg: "$amount" },
@@ -87,111 +79,24 @@ async function calculateAndInsertCategoryStatistics() {
             }
         ]).toArray();
         await collection.insertMany(statistics);
-        console.log('Statistics inserted successfully!');
+        console.log(`${groupByField} Statistics inserted successfully!`);
+    } catch (error) {
+        console.error(`Error calculating ${groupByField} statistics:`, error);
     } finally {
         await client.close();
     }
 }
 
-
-
-
-const collectionName3 = 'merchantStatistics';
-async function calculateAndInsertMerchantStatistics() {
-    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
-    try {
-        await client.connect();
-        const db = client.db(dbName);
-        const collection = db.collection(collectionName3);
-        const statistics = await db.collection(collectionName).aggregate([
-            {
-                $group: {
-                    _id: "$merchant",
-                    totalAmount: { $sum: "$amount" },
-                    totalTransactions: { $sum: 1 },
-                    averageAmount: { $avg: "$amount" },
-                    totalFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 1] }, then: 1, else: 0 } } },
-                    totalNonFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 0] }, then: 1, else: 0 } } }
-                }
-            }
-        ]).toArray();
-        await collection.insertMany(statistics);
-        console.log('Merchant Statistics inserted successfully!');
-    } finally {
-        await client.close();
-    }
-}
-
-
-
-
-const collectionName4 = 'ageStatistics';
-async function calculateAndInsertAgeStatistics() {
-    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
-    try {
-        await client.connect();
-        const db = client.db(dbName);
-        const collection = db.collection(collectionName4);
-        const statistics = await db.collection(collectionName).aggregate([
-            {
-                $group: {
-                    _id: "$age",
-                    totalAmount: { $sum: "$amount" },
-                    totalTransactions: { $sum: 1 },
-                    averageAmount: { $avg: "$amount" },
-                    totalFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 1] }, then: 1, else: 0 } } },
-                    totalNonFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 0] }, then: 1, else: 0 } } }
-                }
-            }
-        ]).toArray();
-        await collection.insertMany(statistics);
-        console.log('Age Statistics inserted successfully!');
-    } finally {
-        await client.close();
-    }
-}
-
-
-
-const collectionName5 = 'genderStatistics';
-async function calculateAndInsertGenderStatistics() {
-    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
-    try {
-        await client.connect();
-        const db = client.db(dbName);
-        const collection = db.collection(collectionName5);
-        const statistics = await db.collection(collectionName).aggregate([
-            {
-                $group: {
-                    _id: "$gender",
-                    totalAmount: { $sum: "$amount" },
-                    totalTransactions: { $sum: 1 },
-                    averageAmount: { $avg: "$amount" },
-                    totalFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 1] }, then: 1, else: 0 } } },
-                    totalNonFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 0] }, then: 1, else: 0 } } }
-                }
-            }
-        ]).toArray();
-        await collection.insertMany(statistics);
-        console.log("Gender Statistics inserted successfully!");
-    } finally {
-        await client.close();
-    }
-}
-
-
-const collectionName6 = 'amountStatistics';
+// Function to calculate and insert amount statistics with ranges
 async function calculateAndInsertAmountStatistics() {
     const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         await client.connect();
         const db = client.db(dbName);
-        const collection = db.collection(collectionName6);
+        const collection = db.collection('amountStatistics');
 
         // Define your range boundaries
-        const rangeBoundaries = [
-            0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, // add more as needed
-        ];
+        const rangeBoundaries = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, Infinity];
 
         // Aggregate statistics
         const statistics = await db.collection(collectionName).aggregate([
@@ -213,7 +118,7 @@ async function calculateAndInsertAmountStatistics() {
             }
         ]).toArray();
 
-        // Add random ID and range information
+        // Insert statistics with new fields into the collection
         const statisticsWithRanges = statistics.map(stat => ({
             _id: uuidv4(), // Generate a random ID
             totalAmount: stat.totalAmount,
@@ -227,49 +132,28 @@ async function calculateAndInsertAmountStatistics() {
             }
         }));
 
-        // Insert statistics with new fields into the collection
         await collection.insertMany(statisticsWithRanges);
         console.log("Amount Statistics inserted successfully!");
+    } catch (error) {
+        console.error('Error calculating amount statistics:', error);
     } finally {
         await client.close();
     }
 }
 
-
-
-const collectionName7 = 'fraudStatistics';
-async function calculateAndInsertFraudStatistics() {
-    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+async function main() {
+    const filePath = 'HSBC.csv';
     try {
-        await client.connect();
-        const db = client.db(dbName);
-        const collection = db.collection(collectionName7);
-        const statistics = await db.collection(collectionName).aggregate([
-            {
-                $group: {
-                    _id: "$fraud",
-                    totalAmount: { $sum: "$amount" },
-                    totalTransactions: { $sum: 1 },
-                    averageAmount: { $avg: "$amount" },
-                    totalFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 1] }, then: 1, else: 0 } } },
-                    totalNonFraud: { $sum: { $cond: { if: { $eq: ["$fraud", 0] }, then: 1, else: 0 } } }
-                }
-            }
-        ]).toArray();
-        await collection.insertMany(statistics);
-        console.log("Fraud Statistics inserted successfully!");
-    } finally {
-        await client.close();
+        await readCSVAndInsert(filePath);
+        await calculateAndInsertStatistics('categoryStatistics', 'category');
+        await calculateAndInsertStatistics('merchantStatistics', 'merchant');
+        await calculateAndInsertStatistics('ageStatistics', 'age');
+        await calculateAndInsertStatistics('genderStatistics', 'gender');
+        await calculateAndInsertAmountStatistics();
+        await calculateAndInsertStatistics('fraudStatistics', 'fraud');
+    } catch (error) {
+        console.error('Error in main function:', error);
     }
 }
 
-
-
-const filePath = 'HSBC.csv';
-readCSVAndInsert(filePath);
-calculateAndInsertCategoryStatistics();
-calculateAndInsertMerchantStatistics();
-calculateAndInsertAgeStatistics();
-calculateAndInsertGenderStatistics();
-calculateAndInsertAmountStatistics();
-calculateAndInsertFraudStatistics();
+main();
