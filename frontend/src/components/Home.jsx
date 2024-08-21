@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import AgeStats from "./AgeStats";
 import GenderStats from "./GenderStats";
 import AmountStats from "./AmountStats";
@@ -8,6 +9,15 @@ import FraudStats from "./FraudStats";
 // import MerchantStats from "./MerchantStats";
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
   return (
     <div>
       <h1>Dashboard</h1>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams, useNavigate } from "react-router-dom";
+
 const API = "https://hsbc-server.onrender.com";
+
 const Transactions = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
@@ -27,8 +29,12 @@ const Transactions = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token") || "";
-    setToken(token);
-  }, []);
+    if (!token) {
+      navigate("/login");
+    } else {
+      setToken(token);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     if (!token) return;
