@@ -4,7 +4,7 @@ import axios from "axios";
 import { Avatar, Button, CssBaseline, TextField, Grid, Box, Typography, Container, Link } from '@mui/material';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-
+const API = "http://localhost:5000";
 const theme = createTheme();
 
 const Register = () => {
@@ -15,7 +15,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post("http://localhost:5000/api/auth/register", { username, password });
+            const res = await axios.post(API+"/api/auth/register", { username, password });
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("username", res.data.username);
             navigate("/");
