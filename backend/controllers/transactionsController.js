@@ -1,0 +1,158 @@
+const Transaction = require('../models/Transaction');
+
+// @desc    Get all transactions
+// @route   GET /api/transactions
+// @access  Private
+exports.getTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find();
+
+    return res.status(200).json({
+      success: true,
+      count: transactions.length,
+      data: transactions,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// @desc    Get single transaction
+// @route   GET /api/transactions/:id
+// @access  Private
+exports.getTransactionById = async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id);
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: transaction,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// @desc    Get transactions by filter
+// @route   POST /api/transactions/filter
+// @access  Private
+
+// {
+//     "_id": {
+//       "$oid": "66c57924eab139f8ffd660e2"
+//     },
+//     "step": 0,
+//     "customer": "C1093826151",
+//     "age": 4,
+//     "gender": "M",
+//     "zipcodeOri": "28007",
+//     "merchant": "M348934600",
+//     "zipMerchant": "28007",
+//     "category": "es_transportation",
+//     "amount": 4.55,
+//     "fraud": 0
+//   }
+
+exports.getTransactionsByFilter = async (req, res) => {
+  try {
+    const { step, customer, ageRange, gender, zipcodeOri, merchant, zipMerchant, category, amountRange, fraud } = req.body;
+    console.log(req.body);
+    let query = {};
+
+    if (step) {
+        query.step = step;
+    }
+
+    if (customer) {
+        query.customer = customer;
+    }
+
+    if (ageRange) {
+        query.age = { $gte: ageRange[0], $lte: ageRange[1] };
+    }
+
+    if (gender) {
+        query.gender = gender;
+    }
+
+    if (zipcodeOri) {
+        query.zipcodeOri = zipcodeOri;
+    }
+
+    if (merchant) {
+        query.merchant = merchant;
+    }
+
+    if (zipMerchant) {
+        query.zipMerchant = zipMerchant;
+    }
+
+    if (category) {
+        query.category = category;
+    }
+
+    if (amountRange) {
+        query.amount = { $gte: amountRange[0], $lte: amountRange[1] };
+    }
+
+    if (fraud) {
+        query.fraud = fraud;
+    }
+    const transactions = await Transaction.find(query);
+
+    return res.status(200).json({
+        success: true,
+        count: transactions.length,
+        data: transactions,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+}
+
+
+// @desc   Add transaction
+// @route  POST /api/transactions
+// @access Private
+exports.addTransaction = async (req, res) => {
+  try {
+    const { step, customer, age, gender, zipcodeOri, merchant, zipMerchant, category, amount, fraud } = req.body;
+
+    const transaction = await Transaction.create({
+        step,
+        customer,
+        age,
+        gender,
+        zipcodeOri,
+        merchant,
+        zipMerchant,
+        category,
+        amount,
+        fraud,
+    });
+
+    return res.status(201).json({
+        success: true,
+        data: transaction,
+        });
+
+    }
+    catch (err) {
+        console.error(err);
+        if (err.name === 'ValidationError') {
+            const messages = Object.values(err.errors).map((val) => val.message);
+            return res.status(400).json({ error: messages });
+        } else {
+            res.status(500).json({ error: 'Server error' });
+        }
+    }
+}
+
