@@ -1,20 +1,43 @@
-const Transaction = require('../models/Transaction');
+const Transaction = require("../models/Transaction");
 
 // @desc    Get all transactions
 // @route   GET /api/transactions
 // @access  Private
 exports.getTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find();
+    const { page, limit } = req.query;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    const results = {};
+
+    if (endIndex < (await Transaction.countDocuments().exec())) {
+      results.next = {
+        page: Number(page) + 1,
+        limit: limit,
+      };
+    }
+
+    if (startIndex > 0) {
+      results.previous = {
+        page: Number(page) - 1,
+        limit: limit,
+      };
+    }
+
+    results.results = await Transaction.find()
+      .limit(limit)
+      .skip(startIndex)
+      .exec();
 
     return res.status(200).json({
       success: true,
-      count: transactions.length,
-      data: transactions,
+      count: results.results.length,
+      data: results,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -26,7 +49,7 @@ exports.getTransactionById = async (req, res) => {
     const transaction = await Transaction.findById(req.params.id);
 
     if (!transaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      return res.status(404).json({ error: "Transaction not found" });
     }
 
     return res.status(200).json({
@@ -35,7 +58,7 @@ exports.getTransactionById = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -43,116 +66,142 @@ exports.getTransactionById = async (req, res) => {
 // @route   POST /api/transactions/filter
 // @access  Private
 
-// {
-//     "_id": {
-//       "$oid": "66c57924eab139f8ffd660e2"
-//     },
-//     "step": 0,
-//     "customer": "C1093826151",
-//     "age": 4,
-//     "gender": "M",
-//     "zipcodeOri": "28007",
-//     "merchant": "M348934600",
-//     "zipMerchant": "28007",
-//     "category": "es_transportation",
-//     "amount": 4.55,
-//     "fraud": 0
-//   }
-
 exports.getTransactionsByFilter = async (req, res) => {
   try {
-    const { step, customer, ageRange, gender, zipcodeOri, merchant, zipMerchant, category, amountRange, fraud } = req.body;
-    console.log(req.body);
+    const {
+      step,
+      customer,
+      ageRange,
+      gender,
+      zipcodeOri,
+      merchant,
+      zipMerchant,
+      category,
+      amountRange,
+      fraud,
+    } = req.body;
+
+    const { page, limit } = req.query;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
     let query = {};
 
     if (step) {
-        query.step = step;
+      query.step = step;
     }
 
     if (customer) {
-        query.customer = customer;
+      query.customer = customer;
     }
 
     if (ageRange) {
-        query.age = { $gte: ageRange[0], $lte: ageRange[1] };
+      query.age = { $gte: ageRange[0], $lte: ageRange[1] };
     }
 
     if (gender) {
-        query.gender = gender;
+      query.gender = gender;
     }
 
     if (zipcodeOri) {
-        query.zipcodeOri = zipcodeOri;
+      query.zipcodeOri = zipcodeOri;
     }
 
     if (merchant) {
-        query.merchant = merchant;
+      query.merchant = merchant;
     }
 
     if (zipMerchant) {
-        query.zipMerchant = zipMerchant;
+      query.zipMerchant = zipMerchant;
     }
 
     if (category) {
-        query.category = category;
+      query.category = category;
     }
 
     if (amountRange) {
-        query.amount = { $gte: amountRange[0], $lte: amountRange[1] };
+      query.amount = { $gte: amountRange[0], $lte: amountRange[1] };
     }
 
     if (fraud) {
-        query.fraud = fraud;
+      query.fraud = fraud;
     }
-    const transactions = await Transaction.find(query);
+
+    const results = {};
+
+    if (endIndex < (await Transaction.countDocuments(query).exec())) {
+        results.next = {
+            page: Number(page) + 1,
+            limit: limit,
+        };
+        }
+
+        if (startIndex > 0) {
+        results.previous = {
+            page: Number(page) - 1,
+            limit: limit,
+        };
+
+    }
+
+    results.results = await Transaction.find(query)
+      .limit(limit)
+      .skip(startIndex)
+      .exec();
 
     return res.status(200).json({
         success: true,
-        count: transactions.length,
-        data: transactions,
+        count: results.results.length,
+        data: results,
         });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
-    }
-}
-
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
 // @desc   Add transaction
 // @route  POST /api/transactions
 // @access Private
 exports.addTransaction = async (req, res) => {
   try {
-    const { step, customer, age, gender, zipcodeOri, merchant, zipMerchant, category, amount, fraud } = req.body;
+    const {
+      step,
+      customer,
+      age,
+      gender,
+      zipcodeOri,
+      merchant,
+      zipMerchant,
+      category,
+      amount,
+      fraud,
+    } = req.body;
 
     const transaction = await Transaction.create({
-        step,
-        customer,
-        age,
-        gender,
-        zipcodeOri,
-        merchant,
-        zipMerchant,
-        category,
-        amount,
-        fraud,
+      step,
+      customer,
+      age,
+      gender,
+      zipcodeOri,
+      merchant,
+      zipMerchant,
+      category,
+      amount,
+      fraud,
     });
 
     return res.status(201).json({
-        success: true,
-        data: transaction,
-        });
-
+      success: true,
+      data: transaction,
+    });
+  } catch (err) {
+    console.error(err);
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors).map((val) => val.message);
+      return res.status(400).json({ error: messages });
+    } else {
+      res.status(500).json({ error: "Server error" });
     }
-    catch (err) {
-        console.error(err);
-        if (err.name === 'ValidationError') {
-            const messages = Object.values(err.errors).map((val) => val.message);
-            return res.status(400).json({ error: messages });
-        } else {
-            res.status(500).json({ error: 'Server error' });
-        }
-    }
-}
-
+  }
+};
