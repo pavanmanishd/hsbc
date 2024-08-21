@@ -65,7 +65,6 @@ exports.getTransactionById = async (req, res) => {
 // @desc    Get transactions by filter
 // @route   POST /api/transactions/filter
 // @access  Private
-
 exports.getTransactionsByFilter = async (req, res) => {
   try {
     const {
@@ -81,67 +80,43 @@ exports.getTransactionsByFilter = async (req, res) => {
       fraud,
     } = req.body;
 
-    const { page, limit } = req.query;
+    let { page, limit } = req.query;
+
+    // Validate and convert pagination parameters
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 10;
+
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
 
     let query = {};
 
-    if (step) {
-      query.step = step;
-    }
+    if (step) query.step = step;
+    if (customer) query.customer = customer;
+    if (ageRange) query.age = { $gte: ageRange[0], $lte: ageRange[1] };
+    if (gender) query.gender = gender;
+    if (zipcodeOri) query.zipcodeOri = zipcodeOri;
+    if (merchant) query.merchant = merchant;
+    if (zipMerchant) query.zipMerchant = zipMerchant;
+    if (category) query.category = category;
+    if (amountRange) query.amount = { $gte: amountRange[0], $lte: amountRange[1] };
+    if (fraud) query.fraud = fraud;
 
-    if (customer) {
-      query.customer = customer;
-    }
-
-    if (ageRange) {
-      query.age = { $gte: ageRange[0], $lte: ageRange[1] };
-    }
-
-    if (gender) {
-      query.gender = gender;
-    }
-
-    if (zipcodeOri) {
-      query.zipcodeOri = zipcodeOri;
-    }
-
-    if (merchant) {
-      query.merchant = merchant;
-    }
-
-    if (zipMerchant) {
-      query.zipMerchant = zipMerchant;
-    }
-
-    if (category) {
-      query.category = category;
-    }
-
-    if (amountRange) {
-      query.amount = { $gte: amountRange[0], $lte: amountRange[1] };
-    }
-
-    if (fraud) {
-      query.fraud = fraud;
-    }
-
+    const totalCount = await Transaction.countDocuments(query).exec();
     const results = {};
 
-    if (endIndex < (await Transaction.countDocuments(query).exec())) {
-        results.next = {
-            page: Number(page) + 1,
-            limit: limit,
-        };
-        }
+    if (endIndex < totalCount) {
+      results.next = {
+        page: page + 1,
+        limit: limit,
+      };
+    }
 
-        if (startIndex > 0) {
-        results.previous = {
-            page: Number(page) - 1,
-            limit: limit,
-        };
-
+    if (startIndex > 0) {
+      results.previous = {
+        page: page - 1,
+        limit: limit,
+      };
     }
 
     results.results = await Transaction.find(query)
@@ -150,15 +125,16 @@ exports.getTransactionsByFilter = async (req, res) => {
       .exec();
 
     return res.status(200).json({
-        success: true,
-        count: results.results.length,
-        data: results,
-        });
+      success: true,
+      count: results.results.length,
+      data: results,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.error('Error in getTransactionsByFilter:', err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // @desc   Add transaction
 // @route  POST /api/transactions
