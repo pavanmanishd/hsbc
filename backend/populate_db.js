@@ -9,13 +9,31 @@ const dbName = 'hsbc';
 const collectionName = 'transactions';
 
 // Function to insert data into MongoDB
-async function insertData(data) {
+async function insertData(data, batchSize = 500) {
     const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         await client.connect();
         const db = client.db(dbName);
         const collection = db.collection(collectionName);
-        await collection.insertMany(data);
+
+        // Split the data into batches
+        for (let i = 0; i < data.length; i += batchSize) {
+            const batch = data.slice(i, i + batchSize);
+            try {
+                await collection.insertMany(batch);
+                console.log(`Inserted ${batch.length} documents.`);
+            } catch (error) {
+                // Handle specific error codes
+                if (error.code === 11000) {
+                    // Duplicate key error, skip this batch
+                    console.log(`Skipping batch with duplicate keys.`);
+                } else {
+                    // Handle other errors
+                    console.error('Error inserting data:', error);
+                    throw error;
+                }
+            }
+        }
         console.log('Data inserted successfully!');
     } catch (error) {
         console.error('Error inserting data:', error);
@@ -59,13 +77,13 @@ async function readCSVAndInsert(filePath) {
     });
 }
 
-// Function to calculate and insert statistics
-async function calculateAndInsertStatistics(collectionName, groupByField) {
+
+async function calculateAndInsertStatistics(collectionCurr, groupByField) {
     const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         await client.connect();
         const db = client.db(dbName);
-        const collection = db.collection(collectionName);
+        const collection = db.collection(collectionCurr);
         const statistics = await db.collection(collectionName).aggregate([
             {
                 $group: {
@@ -78,8 +96,13 @@ async function calculateAndInsertStatistics(collectionName, groupByField) {
                 }
             }
         ]).toArray();
-        await collection.insertMany(statistics);
-        console.log(`${groupByField} Statistics inserted successfully!`);
+
+        if (statistics.length > 0) {
+            await collection.insertMany(statistics);
+            console.log(`${groupByField} Statistics inserted successfully!`);
+        } else {
+            console.log(`No ${groupByField} statistics to insert.`);
+        }
     } catch (error) {
         console.error(`Error calculating ${groupByField} statistics:`, error);
     } finally {
@@ -93,7 +116,7 @@ async function calculateAndInsertAmountStatistics() {
     try {
         await client.connect();
         const db = client.db(dbName);
-        const collection = db.collection('amountStatistics');
+        const collection = db.collection('amountstatistics');
 
         // Define your range boundaries
         const rangeBoundaries = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, Infinity];
@@ -145,12 +168,12 @@ async function main() {
     const filePath = 'HSBC.csv';
     try {
         await readCSVAndInsert(filePath);
-        await calculateAndInsertStatistics('categoryStatistics', 'category');
-        await calculateAndInsertStatistics('merchantStatistics', 'merchant');
-        await calculateAndInsertStatistics('ageStatistics', 'age');
-        await calculateAndInsertStatistics('genderStatistics', 'gender');
         await calculateAndInsertAmountStatistics();
-        await calculateAndInsertStatistics('fraudStatistics', 'fraud');
+        await calculateAndInsertStatistics('categorystatistics', 'category');
+        await calculateAndInsertStatistics('merchantstatistics', 'merchant');
+        await calculateAndInsertStatistics('agestatistics', 'age');
+        await calculateAndInsertStatistics('genderstatistics', 'gender');
+        await calculateAndInsertStatistics('fraudstatistics', 'fraud');
     } catch (error) {
         console.error('Error in main function:', error);
     }
