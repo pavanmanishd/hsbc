@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 const AgeStats = () => {
   const [stats, setStats] = useState([]);
   useEffect(() => {
-    fetch("http://localhost:5000/api/stats/age")
+    fetch("https://hsbc-server.onrender.com/api/stats/age")
       .then((res) => res.json())
       .then((stats) => setStats(stats))
       .catch((err) => console.log(err));

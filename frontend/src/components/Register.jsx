@@ -4,7 +4,7 @@ import axios from "axios";
 import { Avatar, Button, CssBaseline, TextField, Grid, Box, Typography, Container, Link } from '@mui/material';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-const API = "http://localhost:5000";
+const API = "https://hsbc-server.onrender.com";
 const theme = createTheme();
 
 const Register = () => {

@@ -4,7 +4,7 @@ const AmountStats = () => {
   const [stats, setStats] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/stats/amount")
+    fetch("https://hsbc-server.onrender.com/api/stats/amount")
       .then((res) => res.json())
       .then((data) => {
         console.log(data);

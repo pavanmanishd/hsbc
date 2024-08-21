@@ -93,7 +93,7 @@ This document provides details about the backend API for the financial transacti
 The base URL for all endpoints is: 
 
 ```
-http://localhost:5000/api
+https://hsbc-server.onrender.com/api
 ```
 
 ## Authentication Routes

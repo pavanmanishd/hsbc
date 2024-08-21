@@ -6,7 +6,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 const theme = createTheme();
-const API = "http://localhost:5000";
+const API = "https://hsbc-server.onrender.com";
 const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
